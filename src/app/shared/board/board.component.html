@@ -1,15 +1,16 @@
-<div style="display:inline-block;background:#1e3a5f;padding:16px;border-radius:8px">
-  <div style="display:flex;gap:8px">
+<div class="board-wrap">
+  <div class="board">
     @for (ci of cols(); track ci) {
       <div
+        class="col"
         (click)="onColumnClick(ci)"
-        [style.cursor]="isMyTurn ? 'pointer' : 'not-allowed'"
-        style="display:flex;flex-direction:column;gap:8px"
+        [class.col--active]="isMyTurn"
       >
         @for (row of grid; track $index) {
           <div
-            [style.background]="cellColor(row[ci])"
-            style="width:64px;height:64px;border-radius:50%;transition:background 0.15s"
+            class="cell"
+            [class.cell--p1]="row[ci] === 'player1'"
+            [class.cell--p2]="row[ci] === 'player2'"
           ></div>
         }
       </div>

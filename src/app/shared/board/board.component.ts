@@ -5,6 +5,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './board.component.html',
+  styleUrl: './board.component.scss',
 })
 export class BoardComponent {
   @Input() grid: string[][] = [];
@@ -18,15 +19,7 @@ export class BoardComponent {
   }
 
   onColumnClick(colIndex: number): void {
-    if (this.isMyTurn) {
-      this.columnClicked.emit(colIndex);
-    }
-  }
-
-  cellColor(cell: string): string {
-    if (cell === 'player1') return '#ef4444';
-    if (cell === 'player2') return '#eab308';
-    return '#e5e7eb';
+    if (this.isMyTurn) this.columnClicked.emit(colIndex);
   }
 
   cols(): number[] {

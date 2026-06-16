@@ -1,53 +1,87 @@
-<div style="display:flex;flex-direction:column;align-items:center;padding:32px;font-family:sans-serif;min-height:100vh;box-sizing:border-box">
-  <h1 style="margin-bottom:8px">4 en Ralla</h1>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px">
 
-  <div style="margin-bottom:24px;padding:12px 24px;background:#f3f4f6;border-radius:8px;font-size:18px;font-weight:bold;text-align:center">
+  <!-- Header -->
+  <div style="width:100%;max-width:600px;display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🔴🟡</span>
+      <span style="font-weight:800;font-size:18px">4 en Ralla</span>
+    </div>
+    <button class="btn-ghost" (click)="backToLobby()" style="padding:8px 16px;font-size:14px">← Lobby</button>
+  </div>
+
+  <!-- Status badge -->
+  <div style="
+    padding:10px 24px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:15px;
+    text-align:center;
+    background:{{
+      gameState === 'finished' ? 'rgba(59,130,246,0.15)' :
+      waitingForOpponent ? 'rgba(148,163,184,0.1)' :
+      myRole === currentTurn ? 'rgba(16,185,129,0.15)' : 'rgba(234,179,8,0.1)'
+    }};
+    border: 1px solid {{
+      gameState === 'finished' ? 'rgba(59,130,246,0.3)' :
+      waitingForOpponent ? 'var(--border)' :
+      myRole === currentTurn ? 'rgba(16,185,129,0.3)' : 'rgba(234,179,8,0.3)'
+    }};
+    color:{{
+      gameState === 'finished' ? '#93c5fd' :
+      waitingForOpponent ? 'var(--text-muted)' :
+      myRole === currentTurn ? '#6ee7b7' : '#fde68a'
+    }}
+  ">
     {{ statusMessage }}
   </div>
 
+  <!-- Share link panel -->
   @if (waitingForOpponent) {
-    <div style="margin-bottom:24px;padding:20px 24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;text-align:center;max-width:480px;width:100%">
-      <p style="margin:0 0 12px;color:#1e40af;font-weight:bold">Comparte este link con tu rival</p>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input
-          readonly
-          [value]="gameUrl"
-          style="flex:1;padding:8px 12px;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;background:white;font-family:monospace"
-        />
-        <button
-          (click)="copyLink()"
-          style="padding:8px 16px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;white-space:nowrap"
-        >
+    <div class="card" style="width:100%;max-width:480px;padding:20px">
+      <p style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">Comparte con tu rival</p>
+      <div style="display:flex;gap:8px">
+        <input readonly [value]="gameUrl" style="font-size:12px;color:var(--text-muted)" />
+        <button class="btn-primary" (click)="copyLink()" style="flex-shrink:0;padding:12px 16px">
           Copiar
         </button>
       </div>
     </div>
   }
 
-  <div style="margin-bottom:32px">
-    <app-board
-      [grid]="grid"
-      [myRole]="myRole"
-      [currentTurn]="currentTurn"
-      [gameOver]="gameState === 'finished' || waitingForOpponent"
-      (columnClicked)="onColumnClicked($event)"
-    />
-  </div>
+  <!-- Board -->
+  <app-board
+    [grid]="grid"
+    [myRole]="myRole"
+    [currentTurn]="currentTurn"
+    [gameOver]="gameState === 'finished' || waitingForOpponent"
+    (columnClicked)="onColumnClicked($event)"
+  />
 
+  <!-- Player info -->
+  @if (!waitingForOpponent) {
+    <div style="display:flex;gap:20px;font-size:14px;color:var(--text-muted)">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="width:12px;height:12px;border-radius:50%;background:#ef4444;display:inline-block"></span>
+        <span [style.color]="myRole === 'player1' ? '#f1f5f9' : 'var(--text-muted)'"
+              [style.font-weight]="myRole === 'player1' ? '700' : '400'">
+          Rojo{{ myRole === 'player1' ? ' (tú)' : '' }}
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="width:12px;height:12px;border-radius:50%;background:#eab308;display:inline-block"></span>
+        <span [style.color]="myRole === 'player2' ? '#f1f5f9' : 'var(--text-muted)'"
+              [style.font-weight]="myRole === 'player2' ? '700' : '400'">
+          Amarillo{{ myRole === 'player2' ? ' (tú)' : '' }}
+        </span>
+      </div>
+    </div>
+  }
+
+  <!-- Back to lobby button when finished -->
   @if (gameState === 'finished') {
-    <button
-      (click)="backToLobby()"
-      style="padding:12px 28px;background:#3b82f6;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer"
-    >
+    <button class="btn-primary" (click)="backToLobby()" style="padding:14px 32px;font-size:16px;border-radius:var(--radius)">
       Volver al lobby
     </button>
   }
 
-  @if (!waitingForOpponent && gameState !== 'finished') {
-    <div style="margin-top:16px;color:#999;font-size:13px">
-      Tú: <strong style="color:{{ myRole === 'player1' ? '#ef4444' : '#eab308' }}">{{ myRole === 'player1' ? 'Rojo' : 'Amarillo' }}</strong>
-      &nbsp;|&nbsp;
-      Turno: <strong>{{ currentTurn === 'player1' ? 'Rojo' : 'Amarillo' }}</strong>
-    </div>
-  }
 </div>
