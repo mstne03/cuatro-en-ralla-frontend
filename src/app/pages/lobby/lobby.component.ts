@@ -58,7 +58,9 @@ export class LobbyComponent implements OnInit, OnDestroy {
       if (!res.ok) return;
       const data = await res.json();
       this.rooms = data.rooms;
-    } catch {}
+    } catch (e: any) {
+      console.error('fetchRooms error:', e);
+    }
   }
 
   async createRoom() {
@@ -70,12 +72,12 @@ export class LobbyComponent implements OnInit, OnDestroy {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
       const data = await res.json();
       this.router.navigate(['/game', data.room_id]);
     } catch (e: any) {
+      console.error('createRoom error:', e);
       this.error = e.message ?? 'No se pudo crear la sala';
-    } finally {
       this.busy = false;
     }
   }
@@ -91,12 +93,14 @@ export class LobbyComponent implements OnInit, OnDestroy {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail ?? `Error: ${res.status}`);
+        const msg = body.detail ?? `Error HTTP ${res.status}`;
+        console.error('joinRoom failed:', res.status, body);
+        throw new Error(msg);
       }
       this.router.navigate(['/game', roomId]);
     } catch (e: any) {
+      console.error('joinRoom error:', e);
       this.error = e.message ?? 'No se pudo unirse a la sala';
-    } finally {
       this.busy = false;
     }
   }
