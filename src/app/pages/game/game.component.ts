@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GameWsService, GameMessage } from '../../core/game-ws.service';
@@ -14,6 +14,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private ws = inject(GameWsService);
+  private cdr = inject(ChangeDetectorRef);
   private sub?: Subscription;
 
   roomId = '';
@@ -44,6 +45,7 @@ export class GameComponent implements OnInit, OnDestroy {
   handleMessage(msg: GameMessage) {
     console.log('[WS received]', msg);
     switch (msg.type) {
+
       case 'state':
         this.grid = msg.board?.grid ?? this.grid;
         this.currentTurn = msg.current_turn ?? '';
@@ -85,6 +87,7 @@ export class GameComponent implements OnInit, OnDestroy {
         this.statusMessage = `Error: ${msg.message}`;
         break;
     }
+    this.cdr.detectChanges();
   }
 
   getResultMessage(): string {
