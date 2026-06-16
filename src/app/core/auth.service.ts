@@ -6,7 +6,7 @@ import {
   signOut,
   user,
 } from '@angular/fire/auth';
-import { from, Observable, switchMap, of } from 'rxjs';
+import { from, Observable, switchMap, of, filter, first } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -17,6 +17,15 @@ export class AuthService {
   getIdToken(): Observable<string | null> {
     return this.user$.pipe(
       switchMap(u => (u ? from(u.getIdToken()) : of(null)))
+    );
+  }
+
+  /** Waits for Firebase Auth to resolve, then returns the token. Never emits null. */
+  getIdTokenOnce(): Observable<string> {
+    return this.user$.pipe(
+      filter(u => u !== null),
+      first(),
+      switchMap(u => from(u!.getIdToken()))
     );
   }
 

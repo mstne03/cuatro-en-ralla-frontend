@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subject, EMPTY } from 'rxjs';
-import { catchError, take } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -25,8 +25,8 @@ export class GameWsService {
   readonly messages$ = this.messagesSubject.asObservable();
 
   connect(roomId: string): void {
-    this.auth.getIdToken().pipe(take(1)).subscribe(token => {
-      if (!token) return;
+    // Wait for Firebase Auth to resolve before connecting WebSocket
+    this.auth.getIdTokenOnce().subscribe(token => {
       const url = `${environment.wsUrl}/ws/${roomId}?token=${token}`;
       this.socket$ = webSocket<GameMessage>(url);
       this.socket$.pipe(

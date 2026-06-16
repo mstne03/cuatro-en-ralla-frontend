@@ -1,9 +1,9 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
+import { filter, first } from 'rxjs/operators';
 import { AuthService } from '../../core/auth.service';
 import { environment } from '../../../environments/environment';
-import { take } from 'rxjs/operators';
 
 interface Room {
   room_id: string;
@@ -30,7 +30,11 @@ export class LobbyComponent implements OnInit, OnDestroy {
   busy = false;
 
   ngOnInit() {
-    this.auth.user$.pipe(take(1)).subscribe(u => {
+    // Wait for Firebase Auth to resolve before reading user email
+    this.auth.user$.pipe(
+      filter(u => u !== null),
+      first()
+    ).subscribe(u => {
       this.userEmail = u?.email ?? '';
     });
     this.startPolling();
@@ -47,7 +51,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
 
   private async fetchRooms() {
     try {
-      const token = await this.auth.getIdToken().pipe(take(1)).toPromise();
+      const token = await this.auth.getIdTokenOnce().toPromise();
       const res = await fetch(`${environment.apiUrl}/lobby/rooms`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -61,7 +65,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.busy = true;
     this.error = '';
     try {
-      const token = await this.auth.getIdToken().pipe(take(1)).toPromise();
+      const token = await this.auth.getIdTokenOnce().toPromise();
       const res = await fetch(`${environment.apiUrl}/lobby/rooms`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -80,7 +84,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.busy = true;
     this.error = '';
     try {
-      const token = await this.auth.getIdToken().pipe(take(1)).toPromise();
+      const token = await this.auth.getIdTokenOnce().toPromise();
       const res = await fetch(`${environment.apiUrl}/lobby/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
