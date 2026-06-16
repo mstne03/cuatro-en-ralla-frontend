@@ -16,16 +16,22 @@ export class GameComponent implements OnInit, OnDestroy {
   private ws = inject(GameWsService);
   private sub?: Subscription;
 
+  roomId = '';
   grid: string[][] = Array.from({ length: 6 }, () => Array(7).fill('empty'));
   currentTurn = '';
   myRole = '';
   gameState = '';
   result = '';
   statusMessage = 'Conectando...';
+  waitingForOpponent = true;
+
+  get gameUrl(): string {
+    return window.location.href;
+  }
 
   ngOnInit() {
-    const roomId = this.route.snapshot.paramMap.get('id')!;
-    this.ws.connect(roomId);
+    this.roomId = this.route.snapshot.paramMap.get('id')!;
+    this.ws.connect(this.roomId);
     this.sub = this.ws.messages$.subscribe(msg => this.handleMessage(msg));
   }
 
@@ -38,17 +44,19 @@ export class GameComponent implements OnInit, OnDestroy {
     console.log('[WS received]', msg);
     switch (msg.type) {
       case 'state':
-        this.grid = msg.board?.grid ?? [];
+        this.grid = msg.board?.grid ?? this.grid;
         this.currentTurn = msg.current_turn ?? '';
         this.gameState = msg.state ?? '';
         this.myRole = msg.your_role ?? '';
-        this.statusMessage = this.gameState === 'in_progress'
-          ? (this.myRole === this.currentTurn ? 'Tu turno' : 'Turno del rival')
-          : 'Esperando al rival...';
+        this.waitingForOpponent = msg.state !== 'in_progress';
+        this.statusMessage = this.waitingForOpponent
+          ? 'Esperando al rival...'
+          : (this.myRole === this.currentTurn ? 'Tu turno' : 'Turno del rival');
         break;
 
       case 'start':
         this.gameState = 'in_progress';
+        this.waitingForOpponent = false;
         this.statusMessage = this.myRole === this.currentTurn ? 'Tu turno' : 'Turno del rival';
         break;
 
@@ -67,6 +75,7 @@ export class GameComponent implements OnInit, OnDestroy {
       case 'opponent_disconnected':
         this.statusMessage = 'El rival se ha desconectado.';
         this.gameState = 'finished';
+        this.waitingForOpponent = false;
         break;
 
       case 'error':
@@ -76,13 +85,17 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   getResultMessage(): string {
-    if (this.result === 'draw') return 'Empate';
+    if (this.result === 'draw') return '¡Empate!';
     const winnerRole = this.result === 'player1_wins' ? 'player1' : 'player2';
     return winnerRole === this.myRole ? '¡Has ganado!' : 'Has perdido.';
   }
 
   onColumnClicked(col: number) {
     this.ws.sendMove(col);
+  }
+
+  copyLink() {
+    navigator.clipboard.writeText(this.gameUrl);
   }
 
   backToLobby() {

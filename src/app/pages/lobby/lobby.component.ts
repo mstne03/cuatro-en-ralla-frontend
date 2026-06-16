@@ -8,8 +8,7 @@ import { environment } from '../../../environments/environment';
 interface Room {
   room_id: string;
   state: string;
-  player1: string | null;
-  player2: string | null;
+  players: number;
   joinable: boolean;
 }
 
@@ -27,26 +26,17 @@ export class LobbyComponent implements OnInit, OnDestroy {
   userEmail = '';
   rooms: Room[] = [];
   error = '';
-  busy = false;
 
   ngOnInit() {
-    // Wait for Firebase Auth to resolve before reading user email
-    this.auth.user$.pipe(
-      filter(u => u !== null),
-      first()
-    ).subscribe(u => {
+    this.auth.user$.pipe(filter(u => u !== null), first()).subscribe(u => {
       this.userEmail = u?.email ?? '';
     });
-    this.startPolling();
+    this.fetchRooms();
+    this.pollSub = interval(3000).subscribe(() => this.fetchRooms());
   }
 
   ngOnDestroy() {
     this.pollSub?.unsubscribe();
-  }
-
-  private startPolling() {
-    this.fetchRooms();
-    this.pollSub = interval(3000).subscribe(() => this.fetchRooms());
   }
 
   private async fetchRooms() {
@@ -58,51 +48,18 @@ export class LobbyComponent implements OnInit, OnDestroy {
       if (!res.ok) return;
       const data = await res.json();
       this.rooms = data.rooms;
-    } catch (e: any) {
+    } catch (e) {
       console.error('fetchRooms error:', e);
     }
   }
 
-  async createRoom() {
-    this.busy = true;
-    this.error = '';
-    try {
-      const token = await this.auth.getIdTokenOnce().toPromise();
-      const res = await fetch(`${environment.apiUrl}/lobby/rooms`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
-      const data = await res.json();
-      this.router.navigate(['/game', data.room_id]);
-    } catch (e: any) {
-      console.error('createRoom error:', e);
-      this.error = e.message ?? 'No se pudo crear la sala';
-      this.busy = false;
-    }
+  createRoom() {
+    const roomId = crypto.randomUUID();
+    this.router.navigate(['/game', roomId]);
   }
 
-  async joinRoom(roomId: string) {
-    this.busy = true;
-    this.error = '';
-    try {
-      const token = await this.auth.getIdTokenOnce().toPromise();
-      const res = await fetch(`${environment.apiUrl}/lobby/rooms/${roomId}/join`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const msg = body.detail ?? `Error HTTP ${res.status}`;
-        console.error('joinRoom failed:', res.status, body);
-        throw new Error(msg);
-      }
-      this.router.navigate(['/game', roomId]);
-    } catch (e: any) {
-      console.error('joinRoom error:', e);
-      this.error = e.message ?? 'No se pudo unirse a la sala';
-      this.busy = false;
-    }
+  joinRoom(roomId: string) {
+    this.router.navigate(['/game', roomId]);
   }
 
   async signOut() {
@@ -111,7 +68,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   stateLabel(room: Room): string {
-    if (room.state === 'waiting') return room.joinable ? 'Esperando jugador' : 'Llena';
+    if (room.state === 'waiting') return `Esperando (${room.players}/2)`;
     if (room.state === 'in_progress') return 'En curso';
     return 'Terminada';
   }

@@ -14,6 +14,7 @@ export interface GameMessage {
   col?: number;
   message?: string;
   your_role?: string;
+  players?: number;
 }
 
 @Injectable({ providedIn: 'root' })
