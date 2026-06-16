@@ -9,6 +9,6 @@ export const environment = {
     appId: "1:1092213921705:web:f3f7f453465f8f4bac56b8"
   },
   // Replace with your Render backend URL after deploying the backend service
-  wsUrl: "wss://REPLACE_WITH_YOUR_RENDER_BACKEND_URL",
-  apiUrl: "https://REPLACE_WITH_YOUR_RENDER_BACKEND_URL",
+  wsUrl: "wss://cuatro-en-ralla-backend.onrender.com",
+  apiUrl: "https://cuatro-en-ralla-backend.onrender.com",
 };
