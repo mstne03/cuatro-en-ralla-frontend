@@ -5,21 +5,15 @@
     {{ statusMessage }}
   </div>
 
-  @if (grid.length > 0) {
-    <div style="margin-bottom:32px">
-      <app-board
-        [grid]="grid"
-        [myRole]="myRole"
-        [currentTurn]="currentTurn"
-        [gameOver]="gameState === 'finished'"
-        (columnClicked)="onColumnClicked($event)"
-      />
-    </div>
-  } @else {
-    <div style="padding:48px;color:#666">
-      Esperando al tablero...
-    </div>
-  }
+  <div style="margin-bottom:32px">
+    <app-board
+      [grid]="grid"
+      [myRole]="myRole"
+      [currentTurn]="currentTurn"
+      [gameOver]="gameState === 'finished'"
+      (columnClicked)="onColumnClicked($event)"
+    />
+  </div>
 
   @if (gameState === 'finished') {
     <button

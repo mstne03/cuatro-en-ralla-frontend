@@ -16,7 +16,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private ws = inject(GameWsService);
   private sub?: Subscription;
 
-  grid: string[][] = [];
+  grid: string[][] = Array.from({ length: 6 }, () => Array(7).fill('empty'));
   currentTurn = '';
   myRole = '';
   gameState = '';
@@ -35,6 +35,7 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   handleMessage(msg: GameMessage) {
+    console.log('[WS received]', msg);
     switch (msg.type) {
       case 'state':
         this.grid = msg.board?.grid ?? [];
