@@ -1,7 +1,6 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { Subject, EMPTY } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Subject, Subscription } from 'rxjs';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -21,45 +20,77 @@ export interface GameMessage {
 export class GameWsService {
   private auth = inject(AuthService);
   private zone = inject(NgZone);
-  private socket$: WebSocketSubject<GameMessage> | null = null;
-  private messagesSubject = new Subject<GameMessage>();
-  private pingInterval: any = null;
-  private roomId: string | null = null;
 
+  private socket$: WebSocketSubject<GameMessage> | null = null;
+  private socketSub: Subscription | null = null;
+  private tokenSub: Subscription | null = null;
+  private pingInterval: any = null;
+
+  // Fresh Subject per connection so old messages never leak to new components
+  private messagesSubject = new Subject<GameMessage>();
   readonly messages$ = this.messagesSubject.asObservable();
 
   connect(roomId: string): void {
-    this.roomId = roomId;
-    this.auth.getIdTokenOnce().subscribe(token => {
-      this.openSocket(roomId, token);
+    // Full teardown before opening a new connection
+    this.closeAll();
+
+    // New subject so previous component subscriptions are fully severed
+    this.messagesSubject = new Subject<GameMessage>();
+
+    this.tokenSub = this.auth.getIdTokenOnce().subscribe(token => {
+      // Guard: disconnect() may have been called while token was resolving
+      if (this.tokenSub === null) return;
+
+      const url = `${environment.wsUrl}/ws/${roomId}?token=${token}`;
+      this.socket$ = webSocket<GameMessage>({
+        url,
+        openObserver: { next: () => this.startPing() },
+        closeObserver: { next: () => this.stopPing() },
+      });
+
+      this.socketSub = this.socket$.subscribe({
+        next: msg => {
+          if (msg.type === 'pong') return;
+          this.zone.run(() => this.messagesSubject.next(msg));
+        },
+        error: err => {
+          console.error('[WS error]', err);
+          this.zone.run(() =>
+            this.messagesSubject.next({ type: 'error', message: 'Conexión perdida' })
+          );
+        },
+        complete: () => {
+          console.warn('[WS closed]');
+        },
+      });
     });
   }
 
-  private openSocket(roomId: string, token: string): void {
-    const url = `${environment.wsUrl}/ws/${roomId}?token=${token}`;
-    this.socket$ = webSocket<GameMessage>({
-      url,
-      openObserver: {
-        next: () => this.startPing(),
-      },
-      closeObserver: {
-        next: () => this.stopPing(),
-      },
-    });
-    this.socket$.pipe(
-      catchError(() => EMPTY)
-    ).subscribe(msg => {
-      if (msg.type === 'pong') return;
-      this.zone.run(() => this.messagesSubject.next(msg));
-    });
+  sendMove(col: number): void {
+    this.socket$?.next({ type: 'move', col });
+  }
+
+  disconnect(): void {
+    this.closeAll();
+  }
+
+  private closeAll(): void {
+    this.stopPing();
+
+    this.tokenSub?.unsubscribe();
+    this.tokenSub = null;
+
+    this.socketSub?.unsubscribe();
+    this.socketSub = null;
+
+    this.socket$?.complete();
+    this.socket$ = null;
   }
 
   private startPing(): void {
     this.stopPing();
     this.pingInterval = setInterval(() => {
-      try {
-        this.socket$?.next({ type: 'ping' } as any);
-      } catch {}
+      try { this.socket$?.next({ type: 'ping' } as any); } catch {}
     }, 20000);
   }
 
@@ -68,16 +99,5 @@ export class GameWsService {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
-  }
-
-  sendMove(col: number): void {
-    this.socket$?.next({ type: 'move', col });
-  }
-
-  disconnect(): void {
-    this.stopPing();
-    this.socket$?.complete();
-    this.socket$ = null;
-    this.roomId = null;
   }
 }

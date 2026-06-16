@@ -31,6 +31,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.roomId = this.route.snapshot.paramMap.get('id')!;
+    // connect() resets the internal Subject, so subscribe AFTER connect()
     this.ws.connect(this.roomId);
     this.sub = this.ws.messages$.subscribe(msg => this.handleMessage(msg));
   }
@@ -57,6 +58,8 @@ export class GameComponent implements OnInit, OnDestroy {
       case 'start':
         this.gameState = 'in_progress';
         this.waitingForOpponent = false;
+        if (msg.your_role) this.myRole = msg.your_role;
+        if (msg.current_turn) this.currentTurn = msg.current_turn;
         this.statusMessage = this.myRole === this.currentTurn ? 'Tu turno' : 'Turno del rival';
         break;
 
