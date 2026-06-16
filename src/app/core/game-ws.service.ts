@@ -1,6 +1,6 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { Subject, Subscription } from 'rxjs';
+import { Subject, Subscription, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -26,19 +26,16 @@ export class GameWsService {
   private tokenSub: Subscription | null = null;
   private pingInterval: any = null;
 
-  // Fresh Subject per connection so old messages never leak to new components
-  private messagesSubject = new Subject<GameMessage>();
-  readonly messages$ = this.messagesSubject.asObservable();
+  // Single permanent Subject — never replaced, only cleared on disconnect
+  private readonly messagesSubject = new Subject<GameMessage>();
+  readonly messages$: Observable<GameMessage> = this.messagesSubject.asObservable();
 
   connect(roomId: string): void {
-    // Full teardown before opening a new connection
+    // Tear down any previous connection first
     this.closeAll();
 
-    // New subject so previous component subscriptions are fully severed
-    this.messagesSubject = new Subject<GameMessage>();
-
     this.tokenSub = this.auth.getIdTokenOnce().subscribe(token => {
-      // Guard: disconnect() may have been called while token was resolving
+      // Guard: disconnect() called while token was resolving
       if (this.tokenSub === null) return;
 
       const url = `${environment.wsUrl}/ws/${roomId}?token=${token}`;
@@ -59,9 +56,7 @@ export class GameWsService {
             this.messagesSubject.next({ type: 'error', message: 'Conexión perdida' })
           );
         },
-        complete: () => {
-          console.warn('[WS closed]');
-        },
+        complete: () => console.warn('[WS closed]'),
       });
     });
   }
@@ -76,13 +71,10 @@ export class GameWsService {
 
   private closeAll(): void {
     this.stopPing();
-
     this.tokenSub?.unsubscribe();
     this.tokenSub = null;
-
     this.socketSub?.unsubscribe();
     this.socketSub = null;
-
     this.socket$?.complete();
     this.socket$ = null;
   }
