@@ -1,0 +1,38 @@
+<div style="display:flex;flex-direction:column;align-items:center;padding:32px;font-family:sans-serif">
+  <h1 style="margin-bottom:8px">4 en Ralla</h1>
+
+  <div style="margin-bottom:24px;padding:12px 24px;background:#f3f4f6;border-radius:8px;font-size:18px;font-weight:bold">
+    {{ statusMessage }}
+  </div>
+
+  @if (grid.length > 0) {
+    <div style="margin-bottom:32px">
+      <app-board
+        [grid]="grid"
+        [myRole]="myRole"
+        [currentTurn]="currentTurn"
+        [gameOver]="gameState === 'finished'"
+        (columnClicked)="onColumnClicked($event)"
+      />
+    </div>
+  } @else {
+    <div style="padding:48px;color:#666">
+      Esperando al tablero...
+    </div>
+  }
+
+  @if (gameState === 'finished') {
+    <button
+      (click)="backToLobby()"
+      style="padding:12px 24px;background:#3b82f6;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer"
+    >
+      Volver al lobby
+    </button>
+  }
+
+  <div style="margin-top:16px;color:#999;font-size:12px">
+    Eres: <strong>{{ myRole === 'player1' ? 'Rojo' : 'Amarillo' }}</strong>
+    &nbsp;|&nbsp;
+    Turno actual: <strong>{{ currentTurn === 'player1' ? 'Rojo' : 'Amarillo' }}</strong>
+  </div>
+</div>
